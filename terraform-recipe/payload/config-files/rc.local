@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Ensure cowrie restarts on system reboot
+#
+su -c 'cd ~cowrie/cowrie && bin/cowrie restart' cowrie

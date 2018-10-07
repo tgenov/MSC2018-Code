@@ -1,0 +1,5 @@
+path.data: /var/lib/logstash
+pipeline.workers: 1
+pipeline.batch.size: 500
+pipeline.batch.delay: 10000
+path.logs: /var/log/logstash
