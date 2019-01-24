@@ -1,5 +1,5 @@
 variable "instance_count" {
-  description = "Number of instances to launch i"
+  description = "Number of instances to launch in each region"
   default = 3
 }
 variable "spot_prices" {
@@ -8,35 +8,20 @@ variable "spot_prices" {
   default = {
 
       ap-south-1 = 0.004300
-
       eu-west-3 = 0.004000
-
       eu-west-2 = 0.004000
-
       eu-west-1 = 0.003800
-
       ap-northeast-3 = 0.004600
-
       ap-northeast-2 = 0.004300
-
       ap-northeast-1 = 0.004600
-
       sa-east-1 = 0.005600
-
       ca-central-1 = 0.003800
-
       ap-southeast-1 = 0.004400
-
       ap-southeast-2 = 0.004400
-
       eu-central-1 = 0.004000
-
       us-east-1 = 0.003500
-
       us-east-2 = 0.003500
-
       us-west-1 = 0.004100
-
       us-west-2 = 0.003500
 
   }
