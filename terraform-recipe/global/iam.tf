@@ -4,6 +4,8 @@ variable "region" {}
 
 provider "aws" {
   region = "${var.region}"
+  # Must have a valid section in ~/.aws/credentials for this.
+  # [default] doesn't seem to work.
   profile = "subnet"
 }
 

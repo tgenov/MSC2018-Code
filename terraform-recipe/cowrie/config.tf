@@ -1,6 +1,11 @@
 variable "region" {}
+variable instance_type {}
 variable "spot_price" {}
 variable "instance_count" {}
+variable ssh_public_key {}  
+variable ssh_private_key {}
+variable "cowrie_config" { type = "map" }
+
 
 provider "aws" {
   region = "${var.region}"
@@ -104,7 +109,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-artful-17.10-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
   }
 
   filter {
@@ -115,17 +120,12 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "aws_key_pair" "terraform-ssh" {
-  key_name = "terraform-ssh"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDlyMC7K+Z4QTm+QZD4uDDSAlLNVCdx82Glp7nVWQuRCGN/xAOB93oeozKf++dYdaM7W/8Mkd3FNf/2ggufXzSDkdLR43BG1PomT1tu4Yr7ohBrR7W5MSWvaXtibsya3OLbz3aAqbztdWlhtnhClLAkbWeHvBZsedVlQ8ZqHV/WhHW1ZXMTjSxg1YeVSLgImPsd5VIC9uBW9NnPgkLYJ9j3M7TPM4Uf5ksInprVtmHB76o8ISbh4GiJ5YpAyNrd+vEu+ZbAt7RhwaAZphewbosYitJTYNivPAL7HwJEAOVKXbxlqgWQRC5QmVyKlDTQwOPvFHzUR6PEzUhGRg8R/t23 todor@tesla.lan.subnet.co.za"
-}
-
 resource "aws_cloudwatch_metric_alarm" "autorecover" {
   alarm_name          = "ec2-autorecover"
   namespace           = "AWS/EC2"
   evaluation_periods  = "2"
   period              = "60"
-  alarm_description   = "This metric auto recovers EC2 instances"
+  alarm_description   = "This metric auto recovers failed EC2 instances"
   alarm_actions       = ["arn:aws:automate:${var.region}:ec2:reboot"]
   statistic           = "Minimum"
   comparison_operator = "GreaterThanThreshold"
@@ -136,19 +136,26 @@ resource "aws_cloudwatch_metric_alarm" "autorecover" {
   }
 }
 
+resource "aws_key_pair" "generated_key" {
+  key_name   = "honeypot_ssh_key"
+  public_key = "${var.ssh_public_key}"
+}
+
 resource "aws_spot_instance_request" "cowrie" {
   count         = "${var.instance_count}"
   ami           = "${data.aws_ami.ubuntu.id}"
-  instance_type = "t2.micro"
+  instance_type = "${var.instance_type}"
   subnet_id = "${aws_subnet.cowrie_subnet.id}"
-  key_name = "terraform-ssh"
+  key_name = "${aws_key_pair.generated_key.key_name}"
   iam_instance_profile = "cowrie_instance_profile"
   spot_price = "${var.spot_price}"
   wait_for_fulfillment = true
   spot_type = "one-time"
+  user_data = "${lookup(var.cowrie_config, count.index, "default")}"
 
   tags {
-    Name = "cowrie"
+    Name = "cowrie${count.index}"
+    Payload = "${lookup(var.cowrie_config, count.index, "default")}"
   }
 
   provisioner "file" {
@@ -166,7 +173,7 @@ resource "aws_spot_instance_request" "cowrie" {
   connection {
     type     = "ssh"
     user     = "ubuntu"
-    agent_identity = "/Users/todor/.ssh/terraform-ssh"
+    private_key = "${var.ssh_private_key}"
   }
 
 }

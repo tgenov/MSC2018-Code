@@ -2,6 +2,7 @@
 require 'aws-sdk'
 require 'parallel'
 require 'erb'
+require 'pry'
 
 HOME="/Users/todor/Code/Masters-Thesis-Code/terraform-recipe"
 
@@ -11,29 +12,31 @@ class GetSpotPrices
 
   def initialize
     @client = Aws::EC2::Client.new
-    @regions = client.describe_regions["regions"].map{ |i| i.region_name }
+    @regions = client.describe_regions['regions'].map(&:region_name)
     @regional_clients = get_regional_clients
     @spot_prices = {}
   end
 
   def get_all_prices
-    prices =  Parallel.map(regions) do |region|
+    prices = Parallel.map(regions) do |region|
       get_price_for_region(region)
     end
-    prices.map { |struct| @spot_prices[struct[0].availability_zone[0..-2]] = struct[0].spot_price }
+    prices.reject(&:empty?).map do |struct| 
+      @spot_prices[struct[0].availability_zone[0..-2]] = struct[0].spot_price
+    end
     spot_prices
   end
 
   def get_price_for_region(region)
     resp = regional_clients[region].describe_spot_price_history(generate_options)
-    timestamp = resp.spot_price_history.map { |i| i.timestamp }.uniq.sort.first
+    timestamp = resp.spot_price_history.map(&:timestamp).uniq.sort.first
     resp = regional_clients[region].describe_spot_price_history(generate_options(timestamp))
     resp["spot_price_history"].select { |r| r.timestamp == timestamp }
   end
 
   def generate_options(timestamp = Time.now - 86400)
     {
-      instance_types: [ "t2.micro" ],
+      instance_types: [ "t3.nano" ],
       product_descriptions: [ "Linux/UNIX (Amazon VPC)" ],
       start_time: timestamp
     }
@@ -62,13 +65,17 @@ variable "spot_prices" {
 
   default = {
     <% prices.map do |region,price| %>
-      <%= region %> = <%= price %>
+      <%= region %> = <%= price.strip %>
     <% end %>
   }
 }
+
+output "spot" {
+  value = "${var.spot_prices}"
+}
 EOF
 
-File.open("#{HOME}/generated/spot-pricing.tf", "w+") do |f|
+File.open("#{HOME}/pricing/spot-pricing.tf", "w+") do |f|
   f.write ERB.new(terraform_template).result
 end
 
