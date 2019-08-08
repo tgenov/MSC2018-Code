@@ -1,0 +1,2 @@
+#!/bin/bash
+ssh -i assets/ssh-key/id_rsa ubuntu@$1 -p 5522

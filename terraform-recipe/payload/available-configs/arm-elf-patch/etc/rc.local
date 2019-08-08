@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Ensure cowrie restarts on system reboot
+#
+su -c 'cd ~cowrie/cowrie && bin/cowrie restart' cowrie
+start-stop-daemon --user cowrie -b --start --exec /home/ubuntu/scripts/log-processor.sh

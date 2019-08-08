@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+set -o pipefail 
+echo "IP   Config"
+jq -r '.modules[].resources[] | select(.type == "aws_spot_instance_request") | .primary.attributes | .public_ip +" " + ."tags.Payload"' terraform.tfstate
