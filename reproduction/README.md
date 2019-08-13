@@ -10,3 +10,6 @@ This script assumes that ```PostgreSQL``` and ```wget``` are alread installed on
 3. Restore dump into database
 
 The default database name is ```<yourlogin>cowrielogs```
+
+## snapshot-postgres.sh
+Produces a backup of the Postgres database and uploads to S3
